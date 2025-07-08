@@ -1,0 +1,51 @@
+# 開発環境用のdocker-compose設定
+# docker-compose -f docker-compose.yml -f docker-compose.dev.yml up で使用
+
+services:
+  postgres:
+    environment:
+      - POSTGRES_DB=digeon_db_dev
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # 開発用にポート変更
+
+  redis:
+    ports:
+      - "6380:6379"  # 開発用にポート変更
+    volumes:
+      - redis_dev_data:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - DB_NAME=digeon_db_dev
+      - DB_HOST=postgres
+      - JWT_SECRET=dev-secret-key
+      - LOG_LEVEL=debug
+    volumes:
+      - .:/app
+      - /app/vendor  # vendorディレクトリをマウントしない
+    ports:
+      - "8081:8080"  # 開発用にポート変更
+    command: ["air", "-c", ".air.toml"]  # ホットリロード用
+
+  # 開発用のPgAdmin
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: digeon_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - digeon-network
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
